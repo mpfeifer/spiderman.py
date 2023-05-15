@@ -8,28 +8,45 @@ from MySQLdb import _mysql
 import configparser
 import sys
 
-monitoredPorts = [ 80, 25, 8080 ]
+class Tools:
 
-def randomIpv4():
-    MAX_IPV4=ipaddress.IPv4Address._ALL_ONES
-    return ipaddress.IPv4Address._string_from_ip_int( random.randint(0, MAX_IPV4 ))
+    @staticmethod
+    def friendly_hostname(ipv4):
+        try: 
+            (hostname, aliaslist, ipadrlist) = socket.gethostbyaddr(ipv4);
+            if hostname:
+                return hostname
+        except:
+            pass
+        return ""
 
-def genRandomIpv4():
-    while True:
-        yield randomIpv4();
+class Factory:
 
-def getServerDescriptor(ipv4, port):
-    return {
-        'ipv4': ipv4,
-        'timestamp': time(),
-        'port': port,
-        'hostname': socket.gethostbyaddr(ipv4)[0]
-    }
+    @staticmethod
+    def hostDescriptor(ipv4, port):
+        return {
+            'ipv4': ipv4,
+            'timestamp': time(),
+            'port': port,
+            'hostname': Tools.friendly_hostname(ipv4),
+            'active': False
+        }
+
+    @staticmethod
+    def randomIpv4():
+        MAX_IPV4=ipaddress.IPv4Address._ALL_ONES
+        return ipaddress.IPv4Address._string_from_ip_int( random.randint(0, MAX_IPV4 ))
+
+    @staticmethod
+    def ipv4Pool():
+        while True:
+            yield Factory.randomIpv4();
 
 foundServers = []
 noResponseHosts = []
-
+sockets = []
 dbhost, dgbuser, dbpasswd, dbname = None, None, None, None
+
 try:
     parser=configparser.ConfigParser()
     parser.read("spiderman.conf")
@@ -41,23 +58,23 @@ except KeyError as e:
     print("Configuration file is missing values. Please configure dbhost, dbuser, dbpasswd and dbname")
     sys.exit(1)
 
-sockets = []
-for target in genRandomIpv4(): # using generator/yield yeah!
-    if target.startswith("127.") or target.startswith("192."):
+for target in Factory.ipv4Pool():
+
+    if target.startswith("127.") or target.startswith("192.") or target.startswith("10."):
         continue
-    foundServer = None
-    print(f"{target}")
+
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        hostDescriptor = None
         sockets.append(s)
-        #        s.setblocking(0)
         s.settimeout(15.0)
+        hostDescriptor = Factory.hostDescriptor(target, 80)
         try:
             s.connect((target, 80))
             s.shutdown(socket.SHUT_RDWR)
-            foundServer = getServerDescriptor(target, 80)
-            db=_mysql.connect(host=dbhost, user=dbuser, passwd=dbpasswd, db=dbname)
-            db.query(f"INSERT INTO active_hosts VALUES('{foundServer['ipv4']}', FROM_UNIXTIME({foundServer['timestamp']}), '{foundServer['port']}', '{foundServer['hostname']}')")
+            hostDescriptor['active']=True
         except OSError:
             pass
+        db=_mysql.connect(host=dbhost, user=dbuser, passwd=dbpasswd, db=dbname)
+        db.query(f"INSERT INTO hosts VALUES('{hostDescriptor['ipv4']}', FROM_UNIXTIME({hostDescriptor['timestamp']}), '{hostDescriptor['port']}', '{hostDescriptor['hostname']}', '{int(hostDescriptor['active'])}')")
 
     

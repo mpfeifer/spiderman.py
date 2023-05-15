@@ -18,10 +18,11 @@
 This is the list of hosts yet discovered by spiderman web spider.
 </div>
 <?php
-$servername = "";
-$username = "";
-$password = "";
-$dbname = "";
+$db_ini = parse_ini_file("database.ini");
+$servername = $db_ini["servername"];
+$username = $db_ini["username"];
+$password = $db_ini["password"];
+$dbname = $db_ini["dbname"];
 
 // Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);
@@ -30,7 +31,7 @@ if ($conn->connect_error) {
   die("Connection failed: " . $conn->connect_error);
 }
 
-$sql = "SELECT * FROM active_hosts";
+$sql = "SELECT * FROM hosts where active=1";
 $result = $conn->query($sql);
 
 if ($result->num_rows > 0) {
