@@ -49,7 +49,7 @@ dbhost, dgbuser, dbpasswd, dbname = None, None, None, None
 
 try:
     parser=configparser.ConfigParser()
-    parser.read("spiderman.conf")
+    parser.read("conf/spiderman.conf")
     dbhost=parser.get("spiderman", "dbhost")
     dbuser=parser.get("spiderman", "dbuser")
     dbpasswd=parser.get("spiderman", "dbpasswd")
