@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
+from MySQLdb import _mysql
+from time import time
+
+import configparser
 import ipaddress
 import random
 import socket
-from time import time
-from MySQLdb import _mysql
-import configparser
 import sys
 
 class Tools:
@@ -35,7 +36,15 @@ class Factory:
     @staticmethod
     def randomIpv4():
         MAX_IPV4=ipaddress.IPv4Address._ALL_ONES
-        return ipaddress.IPv4Address._string_from_ip_int( random.randint(0, MAX_IPV4 ))
+        while True:
+            randomInt = random.randint(0, MAX_IPV4)
+            if ((randomInt >= 2886729728) && (randomInt <= 2887778303) or
+                (randomInt >= 3232235520) && (randomInt <= 3232301055) or
+                (randomInt >=  167772160) && (randomInt <=  184549375)):
+                continue
+            else:
+                break
+        return ipaddress.IPv4Address._string_from_ip_int( randomInt )
 
     @staticmethod
     def ipv4Pool():
@@ -60,9 +69,6 @@ except KeyError as e:
 
 for target in Factory.ipv4Pool():
 
-    if target.startswith("127.") or target.startswith("192.") or target.startswith("10."):
-        continue
-
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         hostDescriptor = None
         sockets.append(s)
@@ -76,5 +82,3 @@ for target in Factory.ipv4Pool():
             pass
         db=_mysql.connect(host=dbhost, user=dbuser, passwd=dbpasswd, db=dbname)
         db.query(f"INSERT INTO hosts VALUES('{hostDescriptor['ipv4']}', FROM_UNIXTIME({hostDescriptor['timestamp']}), '{hostDescriptor['port']}', '{hostDescriptor['hostname']}', '{int(hostDescriptor['active'])}')")
-
-    
