@@ -15,9 +15,14 @@ import sqlite3
 logging.basicConfig(format='%(asctime)s|%(levelname)s|%(message)s',
                     filename='spiderman.log', level=logging.INFO)
 
-log = logging.getLogger(__name__)
+logging.getLogger().addHandler(logging.StreamHandler())
+
+log = logging.getLogger( "spiderman" )
 
 db_file = 'spiderman.db'
+
+sql = '''INSERT INTO hosts(ip, timestamp, port, hostname)
+         VALUES(?,?,?,?)'''
 
 if not os.path.isfile(db_file):
     log.info(f"Initializing sqlite database in {db_file}")
@@ -59,13 +64,10 @@ class Factory:
         MAX_IPV4=ipaddress.IPv4Address._ALL_ONES
         while True:
             randomInt = random.randint(0, MAX_IPV4)
-            if ((randomInt >= 2886729728) and (randomInt <= 2887778303) or
-                (randomInt >= 3232235520) and (randomInt <= 3232301055) or
-                (randomInt >=  167772160) and (randomInt <=  184549375)):
-                continue
-            else:
-                break
-        return ipaddress.IPv4Address._string_from_ip_int( randomInt )
+            ip_addr = ipaddress.IPv4Address(randomInt)
+            if not ip_addr.is_private:
+                return str(ip_addr)
+
     @staticmethod
     def ipv4Pool():
         while True:
