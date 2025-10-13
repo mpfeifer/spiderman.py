@@ -66,7 +66,11 @@ class Factory:
             randomInt = random.randint(0, MAX_IPV4)
             ip_addr = ipaddress.IPv4Address(randomInt)
             if not ip_addr.is_private:
-                return str(ip_addr)
+                ipAddrAsStr = str(ip_addr)
+                if ipAddrAsStr.startswith("127."):
+                    continue
+                else:
+                    return ipAddrAsStr
 
     @staticmethod
     def ipv4Pool():
