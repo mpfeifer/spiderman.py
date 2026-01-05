@@ -94,6 +94,7 @@ try {
   </head>
 
   <body>
+    <script src="statistics.js"></script>
     <script>
       var hosts = <?php echo json_encode($_SESSION['hosts'])?>;
 
@@ -215,7 +216,12 @@ try {
           }
       }
 
-      const countsByOctet = [[], [], [], []];
+      const countsByOctet = [];
+      countsByOctet.push(new Array(256).fill(0))
+      countsByOctet.push(new Array(256).fill(0))
+      countsByOctet.push(new Array(256).fill(0))
+      countsByOctet.push(new Array(256).fill(0))
+
       const propabilitiesByOctet = [[], [], [], []];
       const totalCount = hosts.length;
 
@@ -223,18 +229,14 @@ try {
           let ip = host['ip'];
           let octets = ipv4octets(ip);
           for (oi in [0, 1, 2, 3]) { // oi = octetIndex
-              if (typeof countsByOctet[oi][octets[oi]] !== "undefined") {
-                  countsByOctet[oi][octets[oi]] = countsByOctet[oi][octets[oi]] + 1;
-              } else {
-                  countsByOctet[oi][octets[oi]] = 1;
-              }
+              countsByOctet[oi][octets[oi]] += 1;
           }
       });
 
       const dataForChartjs = [[], [], [], []];
       for (oi in [0, 1, 2, 3]) { // oi = octetIndex
           for ( i in countsByOctet[Number(oi)]) {
-              dataForChartjs[oi].push( {x: i, y:countsByOctet[oi][i]} );
+              dataForChartjs[oi].push( {x: i, y: countsByOctet[oi][i]} );
           }
       }
 
@@ -250,6 +252,23 @@ try {
       function setCurrentPageNumber() {
           setText("current-page", currentPage);
       }
+
+
+      var columns = {
+          x: 'metric',
+          y: 'metric'
+      };
+      
+      var settings = {};
+      
+      var stats = new Statistics(dataForChartjs[0], columns, settings);
+
+      const ams = []; // ams = ArithmeticMeanS
+      const am = stats.arithmeticMean('y');
+      const sd = stats.standardDeviation('y');
+      ams.push(am);
+      
+      // Lively networks: dataForChartjs[0].filter( e => Math.abs(e.y - am) > sd);
 
     </script>
 
@@ -316,8 +335,7 @@ try {
           <div class="col-md-12">
             <div class="h-100 p-5 bg-light border rounded-3">
               <h1>Some Statistics</h1>
-              <h2>How is python random number generator doing?</h2>
-              First step when doing statistics often involves counting something. So I have counted the occurences of each octet of the ipv4 addresses and plotted the results using chart.js bar chart. That is the octets of hosts that accepted my connection attempt. So, while the 2nd to 4th octet look rather evenly distributed, the first octect has some hotspots for 3, 23, 34, 104 and 127 (and some others). 127 is interesting. I always thought loopback is 127.0.0.1 only. But google confirms: "IP datagrams sent to <b>a</b> loopback address (127.0.0.0/8) are looped back to the source device at the network layer, rather than being passed to the data link layer for transmission."
+              First step when doing statistics often involves counting something. So I have counted the occurences of each octet of the ipv4 addresses and plotted the results using chart.js bar chart. That is the octets of hosts that accepted my connection attempt. So, while the 2nd to 4th octet look rather evenly distributed, the first octect has some hotspots for 3, 23, 34, 104 and 127 (and some others). 127 is interesting. I always thought loopback is 127.0.0.1 only. But google confirms: "IP datagrams sent to <b>a</b> loopback address (127.0.0.0/8) are looped back to the source device at the network layer, rather than being passed to the data link layer for transmission".
             </div>
           </div>
         </div>
